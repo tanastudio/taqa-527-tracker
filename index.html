@@ -1,5 +1,5 @@
 ﻿<!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -44,35 +44,37 @@
                     <div class="panel">
                         <div class="panel-head">
                             <div class="panel-title">Overall Status</div>
+                            <div class="panel-hint">Click pie/KPI to view details</div>
                         </div>
+
                         <div class="chart-wrap pie-area">
                             <canvas id="overallPie"></canvas>
                         </div>
                     </div>
 
-                    <!-- KPI: 3-2 layout (row1: 3 items, row2: 2 items equal width) -->
+                    <!-- KPI: 3-2 layout -->
                     <div class="kpi-mini-grid kpi-5">
-                        <div class="kpi-mini kpi-total kpi-span-2">
+                        <div class="kpi-mini kpi-total kpi-span-2 kpi-click" data-status="Total">
                             <div class="kpi-mini-title">Total Candidates</div>
                             <div id="kpiTotal" class="kpi-mini-value">0</div>
                         </div>
 
-                        <div class="kpi-mini kpi-completed kpi-span-2">
+                        <div class="kpi-mini kpi-completed kpi-span-2 kpi-click" data-status="Completed">
                             <div class="kpi-mini-title">Completed</div>
                             <div id="kpiCompleted" class="kpi-mini-value">0</div>
                         </div>
 
-                        <div class="kpi-mini kpi-inprogress kpi-span-2">
+                        <div class="kpi-mini kpi-inprogress kpi-span-2 kpi-click" data-status="In Progress">
                             <div class="kpi-mini-title">In Progress</div>
                             <div id="kpiInProgress" class="kpi-mini-value">0</div>
                         </div>
 
-                        <div class="kpi-mini kpi-issue kpi-span-3">
+                        <div class="kpi-mini kpi-issue kpi-span-3 kpi-click" data-status="Issue">
                             <div class="kpi-mini-title">Issue</div>
                             <div id="kpiIssue" class="kpi-mini-value">0</div>
                         </div>
 
-                        <div class="kpi-mini kpi-notstarted kpi-span-3">
+                        <div class="kpi-mini kpi-notstarted kpi-span-3 kpi-click" data-status="Not Started">
                             <div class="kpi-mini-title">Not Started</div>
                             <div id="kpiNotStarted" class="kpi-mini-value">0</div>
                         </div>
@@ -122,6 +124,38 @@
             <div class="footnote">Powered by Mentis @2026</div>
         </section>
     </main>
+
+    <!-- MODAL -->
+    <div id="statusModal" class="modal-overlay" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-head">
+                <div>
+                    <div id="modalTitle" class="modal-title">Candidates</div>
+                    <div id="modalSub" class="modal-sub">-</div>
+                </div>
+                <button id="modalCloseBtn" class="modal-close" aria-label="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-table-wrap">
+                    <table class="modal-table">
+                        <thead>
+                            <tr>
+                                <th style="width:180px;">Code</th>
+                                <th style="width:220px;">Candidate Name</th>
+                                <th>Issue details and Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-foot">
+                <button id="modalCloseBtn2" class="btn btn-ghost">Close</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
