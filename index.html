@@ -1,0 +1,128 @@
+﻿<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project Tracker TAQA - 527</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="topbar">
+                <div>
+                    <h1>Project Tracker TAQA - 527</h1>
+                    <p class="muted">Powered by Mentis</p>
+                    <p class="muted small">Last refresh: <span id="lastRefresh">-</span></p>
+                </div>
+
+                <div class="actions">
+                    <button id="refreshBtn" class="btn">Refresh</button>
+
+                    <label class="btn btn-ghost">
+                        Auto refresh
+                        <select id="autoRefresh" class="mini-select">
+                            <option value="0">Off</option>
+                            <option value="30">30s</option>
+                            <option value="60" selected>60s</option>
+                            <option value="300">5m</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- DASHBOARD -->
+        <section class="card">
+            <div class="dash2-grid">
+                <!-- LEFT 40%: Pie + KPI -->
+                <div class="left-stack">
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div class="panel-title">Overall Status</div>
+                        </div>
+                        <div class="chart-wrap pie-area">
+                            <canvas id="overallPie"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- KPI: 3-2 layout (row1: 3 items, row2: 2 items equal width) -->
+                    <div class="kpi-mini-grid kpi-5">
+                        <div class="kpi-mini kpi-total kpi-span-2">
+                            <div class="kpi-mini-title">Total Candidates</div>
+                            <div id="kpiTotal" class="kpi-mini-value">0</div>
+                        </div>
+
+                        <div class="kpi-mini kpi-completed kpi-span-2">
+                            <div class="kpi-mini-title">Completed</div>
+                            <div id="kpiCompleted" class="kpi-mini-value">0</div>
+                        </div>
+
+                        <div class="kpi-mini kpi-inprogress kpi-span-2">
+                            <div class="kpi-mini-title">In Progress</div>
+                            <div id="kpiInProgress" class="kpi-mini-value">0</div>
+                        </div>
+
+                        <div class="kpi-mini kpi-issue kpi-span-3">
+                            <div class="kpi-mini-title">Issue</div>
+                            <div id="kpiIssue" class="kpi-mini-value">0</div>
+                        </div>
+
+                        <div class="kpi-mini kpi-notstarted kpi-span-3">
+                            <div class="kpi-mini-title">Not Started</div>
+                            <div id="kpiNotStarted" class="kpi-mini-value">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT 60%: Horizontal stacked bar -->
+                <div class="panel full-height">
+                    <div class="panel-head">
+                        <div class="panel-title">Status by Process</div>
+                    </div>
+                    <div class="chart-wrap bar-area">
+                        <canvas id="processStacked"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TABLE -->
+        <section class="card">
+            <div class="table-wrap">
+                <table class="excel">
+                    <thead>
+                        <tr>
+                            <th style="min-width:160px;">Code</th>
+                            <th style="min-width:180px;">Candidate Name</th>
+                            <th style="min-width:220px;">Email</th>
+
+                            <th>LearnWorlds Registered</th>
+                            <th>Hogan Assessment</th>
+                            <th>Hogan Status</th>
+                            <th>GCAT ID</th>
+                            <th>GCAT Status</th>
+                            <th>CBI Booking</th>
+                            <th>Simulation Booking</th>
+                            <th>Feedback Booking</th>
+
+                            <th style="min-width:130px;">Overall Status</th>
+                            <th style="min-width:260px;">Issue details and Decision</th>
+                            <th style="min-width:160px;">Last Updated By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="footnote">Powered by Mentis @2026</div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
