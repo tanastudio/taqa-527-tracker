@@ -1,9 +1,11 @@
-:root {
+﻿:root {
     --border: #e5e7eb;
     --muted: #6b7280;
     --bg: #fafafa;
     --text: #111827;
     --head: #0f2a4a;
+    /* JS จะอัปเดตค่าให้เท่าความสูง header */
+    --table-sticky-top: 0px;
 }
 
 * {
@@ -239,7 +241,7 @@ h1 {
     border-color: #fde68a;
 }
 
-/* Table */
+/* Table base */
 .table-wrap {
     width: 100%;
     overflow: auto;
@@ -427,6 +429,77 @@ table.excel {
     justify-content: flex-end;
 }
 
+/* =========================
+   Dashboard: scroll only inside table + sticky 2 columns + top scrollbar
+   ========================= */
+
+.table-wrap.dashboard-table {
+    max-height: 70vh; /* เลื่อนเฉพาะแถวในตาราง */
+    overflow: auto;
+}
+
+/* sticky first 2 columns */
+table.excel .sticky-col {
+    position: sticky;
+    z-index: 3;
+    background: #fff; /* body cells */
+}
+
+/* header sticky cols above everything */
+table.excel thead th.sticky-col {
+    z-index: 6;
+    background: var(--head);
+    color: #fff;
+}
+
+/* left offsets */
+table.excel .sticky-col-1 {
+    left: 0;
+}
+
+table.excel .sticky-col-2 {
+    left: 160px;
+}
+/* ต้องเท่ากับความกว้าง Code */
+
+/* zebra background correction for sticky cells */
+table.excel tbody tr:nth-child(even) td.sticky-col {
+    background: #fcfcfc;
+}
+
+/* Top horizontal scrollbar (modern) */
+.table-scrollbar-top {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 10px;
+    height: 14px; /* ไม่เกะกะ */
+}
+
+.table-scrollbar-inner {
+    height: 1px;
+}
+
+.table-scrollbar-top::-webkit-scrollbar,
+.table-wrap.dashboard-table::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+.table-scrollbar-top::-webkit-scrollbar-thumb,
+.table-wrap.dashboard-table::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+.table-scrollbar-top::-webkit-scrollbar-track,
+.table-wrap.dashboard-table::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
 /* Responsive */
 @media (max-width:1100px) {
     .dash2-grid {
@@ -447,12 +520,14 @@ table.excel {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .kpi-span-2,
-    .kpi-span-3 {
+    .kpi-span-2, .kpi-span-3 {
         grid-column: auto;
     }
 
     .modal-table {
         min-width: 640px;
     }
+
+
+
 }

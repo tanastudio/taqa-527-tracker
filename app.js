@@ -50,6 +50,13 @@ const modalCloseBtn2 = document.getElementById("modalCloseBtn2");
 /* KPI clickable cards */
 const kpiCards = document.querySelectorAll(".kpi-click");
 
+/* Table scroll sync elements */
+const siteHeader = document.getElementById("siteHeader");
+const dashboardTableWrap = document.getElementById("dashboardTableWrap");
+const dashboardTable = document.getElementById("dashboardTable");
+const tableScrollbarTop = document.getElementById("tableScrollbarTop");
+const tableScrollbarInner = document.getElementById("tableScrollbarInner");
+
 /* Keep latest items for modal filtering */
 let CURRENT_ITEMS = [];
 
@@ -138,9 +145,7 @@ function normalizeKey(s) {
 
 function buildNormalizedRow(row) {
   const out = {};
-  for (const k of Object.keys(row || {})) {
-    out[normalizeKey(k)] = row[k];
-  }
+  for (const k of Object.keys(row || {})) out[normalizeKey(k)] = row[k];
   return out;
 }
 
@@ -159,7 +164,7 @@ function countOf(arr, v) {
 
 function computeOverall(stepStatuses) {
   if (countOf(stepStatuses, "Issue") > 0) return "Issue";
-  if (countOf(stepStatuses, "Completed") === 8) return "Completed";
+  if (countOf(stepStatuses, "Completed") === STEP_KEYS.length) return "Completed";
 
   const inProgress = countOf(stepStatuses, "In Progress");
   const completed = countOf(stepStatuses, "Completed");
@@ -180,6 +185,47 @@ function normalizeStatus(v) {
   return STEP_STATUS.includes(s) ? s : "Not Started";
 }
 
+function isActiveRow(row) {
+  const v = String(getField(row, "Active") || "").trim().toLowerCase();
+  if (!v) return true;
+  if (v === "false" || v === "0" || v === "no") return false;
+  return true;
+}
+
+/* ============================
+   Sticky header offset + scroll sync
+   ============================ */
+
+function setTableStickyTop() {}
+
+let _scrollSyncWired = false;
+function wireScrollSync() {
+  if (_scrollSyncWired) return;
+  if (!dashboardTableWrap || !tableScrollbarTop) return;
+
+  _scrollSyncWired = true;
+  let lock = false;
+
+  dashboardTableWrap.addEventListener("scroll", () => {
+    if (lock) return;
+    lock = true;
+    tableScrollbarTop.scrollLeft = dashboardTableWrap.scrollLeft;
+    lock = false;
+  });
+
+  tableScrollbarTop.addEventListener("scroll", () => {
+    if (lock) return;
+    lock = true;
+    dashboardTableWrap.scrollLeft = tableScrollbarTop.scrollLeft;
+    lock = false;
+  });
+}
+
+function syncTopScrollbarWidth() {
+  if (!dashboardTable || !tableScrollbarInner) return;
+  tableScrollbarInner.style.width = dashboardTable.scrollWidth + "px";
+}
+
 /* ============================
    GVIZ JSONP (no CORS, works on file://)
    ============================ */
@@ -192,13 +238,9 @@ function buildGvizUrl(callbackName) {
 
   params.set("gid", String(SHEET_GID || "0"));
   params.set("tq", "select *");
-
-  /* Force header row = 1 (important for correct column labels) */
   params.set("headers", "1");
-
   params.set("tqx", `out:json;responseHandler:${callbackName}`);
 
-  /* Cache-bust */
   params.set("t", String(Date.now()));
   params.set("r", Math.random().toString(16).slice(2));
 
@@ -220,8 +262,6 @@ function loadSheetRowsViaGviz() {
 
         const cols = resp.table.cols || [];
         const rows = resp.table.rows || [];
-
-        /* Prefer label; fallback to id (A, B, C...) */
         const headers = cols.map((c, i) => (c.label || c.id || `COL_${i}`).trim());
 
         const out = rows.map((r) => {
@@ -256,6 +296,60 @@ function loadSheetRowsViaGviz() {
   });
 }
 
+async function loadSheetRowsViaGvizFetch(timeoutMs = 15000) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const base = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SPREADSHEET_ID)}/gviz/tq`;
+    const params = new URLSearchParams();
+    params.set("gid", String(SHEET_GID || "0"));
+    params.set("tq", "select *");
+    params.set("headers", "1");
+    params.set("tqx", "out:json");
+    params.set("t", String(Date.now()));
+    params.set("r", Math.random().toString(16).slice(2));
+
+    const res = await fetch(`${base}?${params.toString()}`, { signal: controller.signal });
+    if (!res.ok) throw new Error(`GVIZ fetch failed: HTTP ${res.status}`);
+
+    const text = await res.text();
+    const m = text.match(/setResponse\(([\s\S]+)\);\s*$/);
+    if (!m) throw new Error("GVIZ response parse failed");
+
+    const json = JSON.parse(m[1]);
+    if (!json || !json.table) throw new Error("GViz response has no table");
+
+    const cols = json.table.cols || [];
+    const rows = json.table.rows || [];
+    const headers = cols.map((c, i) => (c.label || c.id || `COL_${i}`).trim());
+
+    return rows.map((r) => {
+      const cells = r.c || [];
+      const obj = {};
+      for (let i = 0; i < headers.length; i++) {
+        const key = headers[i] || `COL_${i}`;
+        const cell = cells[i];
+        const val = cell ? (cell.f ?? cell.v ?? "") : "";
+        obj[key] = val;
+      }
+      return obj;
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function loadSheetRowsRobust() {
+  try {
+    return await loadSheetRowsViaGviz();
+  } catch (e) {
+    console.warn("GVIZ JSONP failed; trying fetch fallback:", e);
+    return await loadSheetRowsViaGvizFetch();
+  }
+}
+
+
 /* ============================
    TRANSFORM + RENDER
    ============================ */
@@ -267,18 +361,15 @@ function mapSheetRowsToItems(sheetRows) {
     const code = getField(row, "Code");
     const candidateName = getField(row, "Candidate Name");
     const email = getField(row, "Email");
-    const issueDetailsDecision = getField(row, "Issue details and Decision");
     const lastUpdatedBy = getField(row, "Last Updated By");
+    const issue = getField(row, "Issue");
+    const decision = getField(row, "Decision");
+    const active = isActiveRow(row);
 
+    if (!active) continue;
     if (!String(code).trim() && !String(candidateName).trim()) continue;
 
-    const it = {
-      code,
-      candidateName,
-      email,
-      issueDetailsDecision,
-      lastUpdatedBy,
-    };
+    const it = { code, candidateName, email, issue, decision, lastUpdatedBy };
 
     const stepStatuses = [];
     for (const s of STEP_KEYS) {
@@ -347,31 +438,67 @@ function renderDashboard(items) {
 }
 
 function renderTable(items) {
-  tbody.innerHTML = "";
+    if (!tbody) return;
 
-  for (const it of items) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(it.code)}</td>
-      <td><b>${escapeHtml(it.candidateName)}</b></td>
-      <td>${escapeHtml(it.email)}</td>
+    tbody.innerHTML = "";
 
-      <td>${escapeHtml(it.learnWorldsRegistered)}</td>
-      <td>${escapeHtml(it.hoganAssessment)}</td>
-      <td>${escapeHtml(it.hoganStatus)}</td>
-      <td>${escapeHtml(it.gcatId)}</td>
-      <td>${escapeHtml(it.gcatStatus)}</td>
-      <td>${escapeHtml(it.cbiBooking)}</td>
-      <td>${escapeHtml(it.simulationBooking)}</td>
-      <td>${escapeHtml(it.feedbackBooking)}</td>
+    for (const it of items || []) {
+        const tr = document.createElement("tr");
 
-      <td>${overallPill(it.overallStatus)}</td>
-      <td>${escapeHtml(it.issueDetailsDecision)}</td>
-      <td>${escapeHtml(it.lastUpdatedBy)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
+        // Code (sticky col 1)
+        const tdCode = document.createElement("td");
+        tdCode.className = "sticky-col sticky-col-1";
+        tdCode.textContent = String(it.code || "");
+        tr.appendChild(tdCode);
+
+        // Candidate Name (sticky col 2)
+        const tdName = document.createElement("td");
+        tdName.className = "sticky-col sticky-col-2";
+        tdName.innerHTML = `<b>${escapeHtml(it.candidateName || "")}</b>`;
+        tr.appendChild(tdName);
+
+        // Email
+        const tdEmail = document.createElement("td");
+        tdEmail.textContent = String(it.email || "");
+        tr.appendChild(tdEmail);
+
+        // Steps (keep the same column order as index.html header)
+        for (const s of STEP_KEYS) {
+            const td = document.createElement("td");
+            td.textContent = String(it[s.out] || "Not Started");
+            tr.appendChild(td);
+        }
+
+        // Overall Status pill
+        const tdOverall = document.createElement("td");
+        tdOverall.innerHTML = overallPill(it.overallStatus || "Not Started");
+        tr.appendChild(tdOverall);
+
+        // Issue / Decision / Last Updated By
+        const tdIssue = document.createElement("td");
+        tdIssue.textContent = String(it.issue || "");
+        tr.appendChild(tdIssue);
+
+        const tdDecision = document.createElement("td");
+        tdDecision.textContent = String(it.decision || "");
+        tr.appendChild(tdDecision);
+
+        const tdUpd = document.createElement("td");
+        tdUpd.textContent = String(it.lastUpdatedBy || "");
+        tr.appendChild(tdUpd);
+
+        tbody.appendChild(tr);
+    }
+
+    // Keep top scrollbar width in sync with table width
+    syncTopScrollbarWidth();
 }
+
+
+
+  // หลัง render ค่อย sync ความกว้าง scrollbar
+  syncTopScrollbarWidth();
+
 
 /* ============================
    MODAL (DETAIL LIST)
@@ -393,7 +520,7 @@ function openStatusModal(status) {
 
   if (list.length === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="3" style="color:#6b7280;">No candidates found.</td>`;
+    tr.innerHTML = `<td colspan="4" style="color:#6b7280;">No candidates found.</td>`;
     modalTbody.appendChild(tr);
   } else {
     for (const it of list) {
@@ -401,7 +528,8 @@ function openStatusModal(status) {
       tr.innerHTML = `
         <td>${escapeHtml(it.code)}</td>
         <td><b>${escapeHtml(it.candidateName)}</b></td>
-        <td class="issue-cell">${escapeHtml(it.issueDetailsDecision)}</td>
+        <td class="issue-cell">${escapeHtml(it.issue)}</td>
+        <td class="issue-cell">${escapeHtml(it.decision)}</td>
       `;
       modalTbody.appendChild(tr);
     }
@@ -416,21 +544,17 @@ function closeStatusModal() {
   statusModal.setAttribute("aria-hidden", "true");
 }
 
-/* Close actions */
 modalCloseBtn.addEventListener("click", closeStatusModal);
 modalCloseBtn2.addEventListener("click", closeStatusModal);
 
-/* Click on overlay closes modal (but clicking inside modal does not) */
 statusModal.addEventListener("click", (e) => {
   if (e.target === statusModal) closeStatusModal();
 });
 
-/* Esc closes modal */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeStatusModal();
 });
 
-/* KPI click -> open modal */
 kpiCards.forEach((el) => {
   el.addEventListener("click", () => {
     const status = el.getAttribute("data-status") || "Total";
@@ -444,7 +568,7 @@ kpiCards.forEach((el) => {
 
 async function refresh() {
   try {
-    const sheetRows = await loadSheetRowsViaGviz();
+    const sheetRows = await loadSheetRowsRobust();
 
     const items = mapSheetRowsToItems(sheetRows);
     CURRENT_ITEMS = items;
@@ -453,6 +577,9 @@ async function refresh() {
     renderTable(items);
 
     lastRefresh.textContent = new Date().toLocaleString();
+
+    // ensure sticky top is correct after fonts/layout settle
+    setTableStickyTop();
   } catch (err) {
     console.error(err);
     alert("Loaded rows, but failed to render. Check Console in DevTools.");
@@ -474,6 +601,18 @@ function setAutoRefresh(seconds) {
 
 refreshBtn.addEventListener("click", refresh);
 autoRefresh.addEventListener("change", () => setAutoRefresh(Number(autoRefresh.value)));
+
+/* init */
+window.addEventListener("load", () => {
+  // setTableStickyTop();
+  wireScrollSync();
+  syncTopScrollbarWidth();
+});
+
+window.addEventListener("resize", () => {
+  // setTableStickyTop();
+  syncTopScrollbarWidth();
+});
 
 setAutoRefresh(Number(autoRefresh.value));
 refresh();

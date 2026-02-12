@@ -1,0 +1,270 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Update Candidate</title>
+
+    <!-- Keep existing styles.css if you want; this page is styled by form.css -->
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="form.css" />
+</head>
+
+<body>
+    <header class="site-header compact">
+        <div class="container">
+            <div class="topbar compact">
+                <div class="title-block">
+                    <h1 class="h1-compact">Update Candidate Status - Project ABC</h1>
+                    <div class="subline">
+                        <span class="muted">Auto-save</span>
+                        <span class="dot">•</span>
+                        <span class="muted small">
+                            Status: <span id="saveState" class="save-pill save-idle">Idle</span>
+                        </span>
+                        <span class="dot">•</span>
+                        <span class="muted small">Last sync: <span id="lastSync">-</span></span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="undoBtn" class="btn btn-ghost" disabled>Undo</button>
+                    <button id="reloadBtn" class="btn btn-ghost">Reload</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- TOP AREA (fit in one viewport without scrolling) -->
+        <section class="top-area" id="topArea">
+            <div class="card form-card">             
+                 
+                <div class="form-grid">
+                    <!-- Left: Candidate -->
+                    <div class="panel-box">
+
+                        <div class="panel-top">
+                            <button id="newCandidateBtn" class="btn btn-primary btn-full">+ New Candidate</button>
+                        </div>
+
+                        <label class="label">Select Candidate (Code / Name / Email)</label>
+                        <input id="candPick" class="input" list="candidateList" placeholder="Type then select..." autocomplete="off" />
+                        <datalist id="candidateList"></datalist>
+
+                        <div class="spacer"></div>
+
+                        <div class="two-col">
+                            <div>
+                                <label class="label">Code</label>
+                                <input id="candCode" class="input" placeholder="Enter a unique code..." />
+                            </div>
+                            <div>
+                                <label class="label">Candidate Name</label>
+                                <input id="candName" class="input" placeholder="-" />
+                            </div>
+                        </div>
+
+                        <div class="two-col">
+                            <div>
+                                <label class="label">Email</label>
+                                <input id="candEmail" class="input" placeholder="-" />
+                            </div>
+                            <div>
+                                <label class="label">Last Updated By</label>
+                                <input id="candUpdatedBy" class="input" placeholder="-" />
+                            </div>
+                        </div>
+
+                        <div id="newModeHint" class="hint muted small" style="display:none;">
+                            New Candidate mode: enter a unique Code first. Other fields will save after you leave the field (blur) or change a dropdown.
+                        </div>
+
+                        <div id="dupHint" class="hint hint-error" style="display:none;">
+                            Duplicate Code detected. Saving is blocked until Code is unique.
+                        </div>
+
+                        <div id="loadHint" class="hint hint-warn" style="display:none;">
+                            Data could not be loaded. Please check Sheet access (Anyone with the link can view) and correct Spreadsheet ID / GID.
+                        </div>
+                    </div>
+
+                    <!-- Right: Process Steps -->
+                    <div class="panel-box">
+                        <div class="panel-subtitle">Process Steps</div>
+
+                        <div class="steps-grid">
+                            <div>
+                                <label class="label">LearnWorlds Registered</label>
+                                <select id="step0" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">Hogan Assessment</label>
+                                <select id="step1" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">Hogan Status</label>
+                                <select id="step2" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">GCAT ID</label>
+                                <select id="step3" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">GCAT Status</label>
+                                <select id="step4" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">CBI Booking</label>
+                                <select id="step5" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">Simulation Booking</label>
+                                <select id="step6" class="select"></select>
+                            </div>
+                            <div>
+                                <label class="label">Feedback Booking</label>
+                                <select id="step7" class="select"></select>
+                            </div>
+                        </div>
+
+                        <div class="spacer"></div>
+
+                        <div class="two-col">
+                            <div>
+                                <label class="label">Issue</label>
+                                <textarea id="candIssue" class="input ta" placeholder="-" rows="2"></textarea>
+                            </div>
+                            <div>
+                                <label class="label">Decision</label>
+                                <textarea id="candDecision" class="input ta" placeholder="-" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="top-footnote muted small">
+                    Tip: Top form saves on blur/change. Table cells save with a short debounce. Sorting is UI-only.
+                </div>
+            </div>
+        </section>
+
+        <!-- TABLE AREA (scroll to see) -->
+        <section class="card table-card">
+            <div class="table-toolbar">
+
+                <div class="tool tool-grow">
+                    <label class="label">Search (Code / Name / Email)</label>
+                    <input id="searchInput" class="input" placeholder="Type to filter the table..." autocomplete="off" />
+                </div>
+
+                <div class="tool">
+                    <label class="label">Filter Column</label>
+                    <select id="filterColumn" class="select"></select>
+                </div>
+
+                <div class="tool">
+                    <label class="label">Filter Status</label>
+                    <select id="filterStatus" class="select"></select>
+                </div>
+
+                <div class="tool tool-inline">
+                    <label class="check">
+                        <input id="showInactive" type="checkbox" />
+                        Show inactive
+                    </label>
+                </div>
+
+                <div class="tool tool-right">
+                    <button id="addRowBtn" class="btn">+ Add Row</button>
+                </div>
+            </div>
+
+            <!-- Top horizontal scrollbar (synced with the table wrapper) -->
+            <div class="hscroll-top" id="hscrollTop" aria-label="Horizontal scroll">
+                <div class="hscroll-top-inner" id="hscrollTopInner"></div>
+            </div>
+
+            <div class="table-wrap table-wrap-edit" id="tableWrap">
+                <table class="excel excel-edit" id="grid">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col sticky-col-1 sticky-th">
+                                <button class="th-btn sort-btn" data-key="code" type="button">
+                                    <span class="th-text">Code</span>
+                                    <span class="th-sort" data-sort-icon="code">↕</span>
+                                </button>
+                            </th>
+
+                            <th class="sticky-col sticky-col-2 sticky-th">
+                                <button class="th-btn sort-btn" data-key="name" type="button">
+                                    <span class="th-text">Candidate Name</span>
+                                    <span class="th-sort" data-sort-icon="name">↕</span>
+                                </button>
+                            </th>
+
+                            <th style="min-width:240px;">
+                                <button class="th-btn sort-btn" data-key="email" type="button">
+                                    <span class="th-text">Email</span>
+                                    <span class="th-sort" data-sort-icon="email">↕</span>
+                                </button>
+                            </th>
+
+                            <th><button class="th-btn sort-btn" data-key="LearnWorlds Registered" type="button"><span class="th-text">LearnWorlds Registered</span><span class="th-sort" data-sort-icon="LearnWorlds Registered">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="Hogan Assessment" type="button"><span class="th-text">Hogan Assessment</span><span class="th-sort" data-sort-icon="Hogan Assessment">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="Hogan Status" type="button"><span class="th-text">Hogan Status</span><span class="th-sort" data-sort-icon="Hogan Status">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="GCAT ID" type="button"><span class="th-text">GCAT ID</span><span class="th-sort" data-sort-icon="GCAT ID">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="GCAT Status" type="button"><span class="th-text">GCAT Status</span><span class="th-sort" data-sort-icon="GCAT Status">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="CBI Booking" type="button"><span class="th-text">CBI Booking</span><span class="th-sort" data-sort-icon="CBI Booking">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="Simulation Booking" type="button"><span class="th-text">Simulation Booking</span><span class="th-sort" data-sort-icon="Simulation Booking">↕</span></button></th>
+                            <th><button class="th-btn sort-btn" data-key="Feedback Booking" type="button"><span class="th-text">Feedback Booking</span><span class="th-sort" data-sort-icon="Feedback Booking">↕</span></button></th>
+
+                            <th style="min-width:220px;">
+                                <button class="th-btn sort-btn" data-key="issue" type="button">
+                                    <span class="th-text">Issue</span>
+                                    <span class="th-sort" data-sort-icon="issue">↕</span>
+                                </button>
+                            </th>
+
+                            <th style="min-width:220px;">
+                                <button class="th-btn sort-btn" data-key="decision" type="button">
+                                    <span class="th-text">Decision</span>
+                                    <span class="th-sort" data-sort-icon="decision">↕</span>
+                                </button>
+                            </th>
+
+                            <th style="min-width:160px;">
+                                <button class="th-btn sort-btn" data-key="updatedBy" type="button">
+                                    <span class="th-text">Last Updated By</span>
+                                    <span class="th-sort" data-sort-icon="updatedBy">↕</span>
+                                </button>
+                            </th>
+
+                            <th style="min-width:140px;">
+                                <button class="th-btn sort-btn" data-key="active" type="button">
+                                    <span class="th-text">Active</span>
+                                    <span class="th-sort" data-sort-icon="active">↕</span>
+                                </button>
+                            </th>
+
+                            <th style="min-width:160px;">
+                                <span class="th-text plain-th">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="footnote">
+                Tips: Edit any cell → auto-save. Deactivate instead of delete. Sorting is UI-only.
+            </div>
+        </section>
+
+    </main>
+
+    <script src="form.js"></script>
+</body>
+</html>

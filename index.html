@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <header class="site-header">
+    <header class="site-header" id="siteHeader">
         <div class="container">
             <div class="topbar">
                 <div>
@@ -95,13 +95,20 @@
 
         <!-- TABLE -->
         <section class="card">
-            <div class="table-wrap">
-                <table class="excel">
+            <!-- Top horizontal scrollbar -->
+            <div class="table-scrollbar-top" id="tableScrollbarTop" aria-label="Horizontal scroll">
+                <div class="table-scrollbar-inner" id="tableScrollbarInner"></div>
+            </div>
+
+            <!-- Scroll area (vertical+horizontal) -->
+            <div class="table-wrap dashboard-table" id="dashboardTableWrap">
+                <table class="excel" id="dashboardTable">
                     <thead>
                         <tr>
-                            <th style="min-width:160px;">Code</th>
-                            <th style="min-width:180px;">Candidate Name</th>
-                            <th style="min-width:220px;">Email</th>
+                            <th class="sticky-col sticky-col-1" style="min-width:160px;">Code</th>
+                            <th class="sticky-col sticky-col-2" style="min-width:320px;">Candidate Name</th>
+
+                            <th style="min-width:240px;">Email</th>
 
                             <th>LearnWorlds Registered</th>
                             <th>Hogan Assessment</th>
@@ -113,7 +120,8 @@
                             <th>Feedback Booking</th>
 
                             <th style="min-width:130px;">Overall Status</th>
-                            <th style="min-width:260px;">Issue details and Decision</th>
+                            <th style="min-width:220px;">Issue</th>
+                            <th style="min-width:220px;">Decision</th>
                             <th style="min-width:160px;">Last Updated By</th>
                         </tr>
                     </thead>
@@ -143,7 +151,8 @@
                             <tr>
                                 <th style="width:180px;">Code</th>
                                 <th style="width:220px;">Candidate Name</th>
-                                <th>Issue details and Decision</th>
+                                <th style="min-width:220px;">Issue</th>
+                                <th style="min-width:220px;">Decision</th>
                             </tr>
                         </thead>
                         <tbody id="modalTbody"></tbody>
